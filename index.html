@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Дневник АД">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Дневник АД и Пульса</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .input-field {
+            flex: 1;
+        }
+
+        .input-field label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .input-field input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        .input-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+            margin-top: 8px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .history-values {
+            display: flex;
+            gap: 16px;
+        }
+
+        .history-value {
+            text-align: center;
+        }
+
+        .history-value .number {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .history-value .label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .systolic { color: #e74c3c; }
+        .diastolic { color: #3498db; }
+        .pulse { color: #9b59b6; }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #ff4757;
+            background: #ffe0e3;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-box .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .stat-box .label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .note-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .note-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .history-note {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .pressure-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .pressure-normal { background: #d4edda; color: #155724; }
+        .pressure-elevated { background: #fff3cd; color: #856404; }
+        .pressure-high { background: #f8d7da; color: #721c24; }
+        .pressure-low { background: #cce5ff; color: #004085; }
+
+        .time-of-day-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tod-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tod-btn.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .tod-btn:hover {
+            border-color: #667eea;
+        }
+
+        .history-tod {
+            display: inline-block;
+            font-size: 0.85rem;
+            margin-right: 4px;
+        }
+
+        @media (max-width: 360px) {
+            .history-value .number {
+                font-size: 1.1rem;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>❤️ Дневник АД и Пульса</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('add')">Добавить</button>
+            <button class="tab" onclick="showTab('history')">История</button>
+            <button class="tab" onclick="showTab('stats')">Статистика</button>
+        </div>
+
+        <div id="tab-add" class="tab-content active">
+            <div class="card">
+                <div class="card-title">📝 Новая запись</div>
+                <div class="input-row">
+                    <div class="input-field">
+                        <label>Систолическое (верхнее)</label>
+                        <input type="number" id="systolic" placeholder="120" inputmode="numeric">
+                    </div>
+                    <div class="input-field">
+                        <label>Диастолическое (нижнее)</label>
+                        <input type="number" id="diastolic" placeholder="80" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-field">
+                        <label>Пульс (уд/мин)</label>
+                        <input type="number" id="pulse" placeholder="70" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label style="display:block; font-size:0.85rem; color:#666; margin-bottom:6px;">Время суток</label>
+                    <div class="time-of-day-selector">
+                        <button type="button" class="tod-btn" data-tod="morning" onclick="selectTimeOfDay('morning')">🌅 Утро</button>
+                        <button type="button" class="tod-btn" data-tod="day" onclick="selectTimeOfDay('day')">☀️ День</button>
+                        <button type="button" class="tod-btn" data-tod="evening" onclick="selectTimeOfDay('evening')">🌙 Вечер</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label style="display:block; font-size:0.85rem; color:#666; margin-bottom:6px;">Заметка (необязательно)</label>
+                    <textarea class="note-input" id="note" rows="2" placeholder="После прогулки, натощак..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="saveEntry()">💾 Сохранить запись</button>
+            </div>
+        </div>
+
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <div class="card-title">📋 История измерений</div>
+                <div id="history-list"></div>
+            </div>
+            <button class="btn btn-danger" onclick="clearAll()">🗑️ Очистить всё</button>
+        </div>
+
+        <div id="tab-stats" class="tab-content">
+            <div class="card">
+                <div class="card-title">📊 Средние показатели (7 дней)</div>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="value systolic" id="avg-systolic">—</div>
+                        <div class="label">Верхнее</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value diastolic" id="avg-diastolic">—</div>
+                        <div class="label">Нижнее</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value pulse" id="avg-pulse">—</div>
+                        <div class="label">Пульс</div>
+                    </div>
+                </div>
+                <div id="stats-info" style="text-align:center; color:#888; font-size:0.9rem;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">📈 Всего записей</div>
+                <div style="text-align:center;">
+                    <span id="total-entries" style="font-size:2rem; font-weight:700; color:#667eea;">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'bp_diary_entries';
+        let selectedTimeOfDay = null;
+
+        function getAutoTimeOfDay() {
+            const hour = new Date().getHours();
+            if (hour < 11) return 'morning';
+            if (hour < 17) return 'day';
+            return 'evening';
+        }
+
+        function getTimeOfDayLabel(tod) {
+            const labels = {
+                morning: '🌅 Утро',
+                day: '☀️ День',
+                evening: '🌙 Вечер'
+            };
+            return labels[tod] || '';
+        }
+
+        function selectTimeOfDay(tod) {
+            selectedTimeOfDay = tod;
+            document.querySelectorAll('.tod-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tod === tod);
+            });
+        }
+
+        function initTimeOfDay() {
+            const autoTod = getAutoTimeOfDay();
+            selectTimeOfDay(autoTod);
+        }
+
+        function getEntries() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveEntries(entries) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        function getPressureLevel(systolic, diastolic) {
+            if (systolic < 90 || diastolic < 60) {
+                return { text: 'Низкое', class: 'pressure-low' };
+            } else if (systolic < 120 && diastolic < 80) {
+                return { text: 'Норма', class: 'pressure-normal' };
+            } else if (systolic < 130 && diastolic < 80) {
+                return { text: 'Повышенное', class: 'pressure-elevated' };
+            } else {
+                return { text: 'Высокое', class: 'pressure-high' };
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const entryDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const diffDays = Math.floor((today - entryDate) / (1000 * 60 * 60 * 24));
+            
+            const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            
+            if (diffDays === 0) return `Сегодня, ${time}`;
+            if (diffDays === 1) return `Вчера, ${time}`;
+            
+            return date.toLocaleDateString('ru-RU', { 
+                day: 'numeric', 
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function saveEntry() {
+            const systolic = parseInt(document.getElementById('systolic').value);
+            const diastolic = parseInt(document.getElementById('diastolic').value);
+            const pulse = parseInt(document.getElementById('pulse').value);
+            const note = document.getElementById('note').value.trim();
+
+            if (!systolic || !diastolic || !pulse) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            if (systolic < 50 || systolic > 300 || diastolic < 30 || diastolic > 200 || pulse < 30 || pulse > 250) {
+                alert('Проверьте введённые значения');
+                return;
+            }
+
+            const entry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                systolic,
+                diastolic,
+                pulse,
+                note,
+                timeOfDay: selectedTimeOfDay
+            };
+
+            const entries = getEntries();
+            entries.unshift(entry);
+            saveEntries(entries);
+
+            document.getElementById('systolic').value = '';
+            document.getElementById('diastolic').value = '';
+            document.getElementById('pulse').value = '';
+            document.getElementById('note').value = '';
+            initTimeOfDay();
+
+            renderHistory();
+            updateStats();
+            
+            alert('✅ Запись сохранена!');
+        }
+
+        function deleteEntry(id) {
+            if (!confirm('Удалить эту запись?')) return;
+            
+            const entries = getEntries().filter(e => e.id !== id);
+            saveEntries(entries);
+            renderHistory();
+            updateStats();
+        }
+
+        function clearAll() {
+            if (!confirm('Вы уверены, что хотите удалить ВСЕ записи?')) return;
+            if (!confirm('Это действие нельзя отменить. Продолжить?')) return;
+            
+            localStorage.removeItem(STORAGE_KEY);
+            renderHistory();
+            updateStats();
+        }
+
+        function renderHistory() {
+            const entries = getEntries();
+            const container = document.getElementById('history-list');
+
+            if (entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📝</div>
+                        <div>Пока нет записей</div>
+                        <div style="font-size:0.85rem; margin-top:8px;">Добавьте первое измерение</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = entries.map(entry => {
+                const level = getPressureLevel(entry.systolic, entry.diastolic);
+                return `
+                    <div class="history-item">
+                        <div>
+                            <div class="history-date">
+                                <span class="history-tod">${entry.timeOfDay ? getTimeOfDayLabel(entry.timeOfDay) : ''}</span>
+                                ${formatDate(entry.date)}
+                                <span class="pressure-indicator ${level.class}">${level.text}</span>
+                            </div>
+                            <div class="history-values">
+                                <div class="history-value">
+                                    <div class="number systolic">${entry.systolic}</div>
+                                    <div class="label">Сист.</div>
+                                </div>
+                                <div class="history-value">
+                                    <div class="number diastolic">${entry.diastolic}</div>
+                                    <div class="label">Диаст.</div>
+                                </div>
+                                <div class="history-value">
+                                    <div class="number pulse">${entry.pulse}</div>
+                                    <div class="label">Пульс</div>
+                                </div>
+                            </div>
+                            ${entry.note ? `<div class="history-note">💬 ${entry.note}</div>` : ''}
+                        </div>
+                        <button class="delete-btn" onclick="deleteEntry(${entry.id})">✕</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            const entries = getEntries();
+            document.getElementById('total-entries').textContent = entries.length;
+
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            
+            const recentEntries = entries.filter(e => new Date(e.date) >= weekAgo);
+
+            if (recentEntries.length === 0) {
+                document.getElementById('avg-systolic').textContent = '—';
+                document.getElementById('avg-diastolic').textContent = '—';
+                document.getElementById('avg-pulse').textContent = '—';
+                document.getElementById('stats-info').textContent = 'Нет данных за последние 7 дней';
+                return;
+            }
+
+            const avgSys = Math.round(recentEntries.reduce((a, b) => a + b.systolic, 0) / recentEntries.length);
+            const avgDia = Math.round(recentEntries.reduce((a, b) => a + b.diastolic, 0) / recentEntries.length);
+            const avgPulse = Math.round(recentEntries.reduce((a, b) => a + b.pulse, 0) / recentEntries.length);
+
+            document.getElementById('avg-systolic').textContent = avgSys;
+            document.getElementById('avg-diastolic').textContent = avgDia;
+            document.getElementById('avg-pulse').textContent = avgPulse;
+            document.getElementById('stats-info').textContent = `На основе ${recentEntries.length} измерений`;
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            document.querySelector(`.tab:nth-child(${tabName === 'add' ? 1 : tabName === 'history' ? 2 : 3})`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // Инициализация
+        renderHistory();
+        updateStats();
+        initTimeOfDay();
+
+        // Регистрация Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
