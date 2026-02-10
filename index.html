@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="Дневник АД">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <title>Дневник АД и Пульса</title>
     <style>
         * {
@@ -20,6 +21,7 @@
         html, body {
             height: 100%;
             overflow: hidden;
+            width: 100%;
         }
 
         body {
@@ -32,6 +34,7 @@
 
         .container {
             max-width: 500px;
+            width: 100%;
             margin: 0 auto;
             flex: 1;
             display: flex;
@@ -120,44 +123,68 @@
             color: white;
         }
 
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
         .btn-danger {
             background: #ff4757;
             color: white;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
             margin-top: 8px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
         }
 
         .history-item {
             background: #f8f9fa;
             border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            min-width: 0;
+        }
+
+        .history-item > div:first-child {
+            flex: 1;
+            min-width: 0;
         }
 
         .history-date {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #888;
             margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .history-values {
             display: flex;
-            gap: 16px;
+            gap: 12px;
         }
 
         .history-value {
             text-align: center;
+            min-width: 40px;
         }
 
         .history-value .number {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
         }
 
         .history-value .label {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: #888;
             text-transform: uppercase;
         }
@@ -170,7 +197,8 @@
             background: none;
             border: none;
             color: #ccc;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            flex-shrink: 0;
             cursor: pointer;
             padding: 8px;
             border-radius: 8px;
@@ -247,7 +275,7 @@
         .tab-content {
             display: none;
             flex: 1;
-            overflow: auto;
+            overflow: hidden;
         }
 
         .tab-content.active {
@@ -324,7 +352,43 @@
 
         .history-card {
             flex: 1;
-            overflow: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #history-list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .stats-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .chart-empty {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.85rem;
+            padding: 20px 0;
+            display: none;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 150px;
+            width: 100%;
+        }
+
+        .chart-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
         }
 
         @media (max-width: 360px) {
@@ -387,32 +451,50 @@
                 <div class="card-title">📋 История измерений</div>
                 <div id="history-list"></div>
             </div>
-            <button class="btn btn-danger" onclick="clearAll()">🗑️ Очистить всё</button>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📥 Импорт</button>
+                <button class="btn btn-secondary" onclick="exportData()">📤 Экспорт</button>
+                <button class="btn btn-danger" onclick="clearAll()">🗑️ Очистить</button>
+            </div>
+            <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
         </div>
 
         <div id="tab-stats" class="tab-content">
-            <div class="card">
-                <div class="card-title">📊 Средние показатели (7 дней)</div>
-                <div class="stats">
-                    <div class="stat-box">
-                        <div class="value systolic" id="avg-systolic">—</div>
-                        <div class="label">Верхнее</div>
+            <div class="stats-scroll">
+                <div class="card">
+                    <div class="card-title">📊 Средние (7 дней)</div>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="value systolic" id="avg-systolic">—</div>
+                            <div class="label">Верхнее</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value diastolic" id="avg-diastolic">—</div>
+                            <div class="label">Нижнее</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value pulse" id="avg-pulse">—</div>
+                            <div class="label">Пульс</div>
+                        </div>
                     </div>
-                    <div class="stat-box">
-                        <div class="value diastolic" id="avg-diastolic">—</div>
-                        <div class="label">Нижнее</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="value pulse" id="avg-pulse">—</div>
-                        <div class="label">Пульс</div>
-                    </div>
+                    <div id="stats-info" style="text-align:center; color:#888; font-size:0.8rem;"></div>
                 </div>
-                <div id="stats-info" style="text-align:center; color:#888; font-size:0.9rem;"></div>
-            </div>
-            <div class="card">
-                <div class="card-title">📈 Всего записей</div>
-                <div style="text-align:center;">
-                    <span id="total-entries" style="font-size:2rem; font-weight:700; color:#667eea;">0</span>
+                <div class="card">
+                    <div class="card-title">📈 Давление</div>
+                    <div class="chart-container">
+                        <canvas id="chart-bp"></canvas>
+                    </div>
+                    <div id="chart-bp-empty" class="chart-empty">Нет данных для графика</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">💓 Пульс</div>
+                    <div class="chart-container">
+                        <canvas id="chart-pulse"></canvas>
+                    </div>
+                    <div id="chart-pulse-empty" class="chart-empty">Нет данных для графика</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 Всего записей: <span id="total-entries" style="color:#667eea;">0</span></div>
                 </div>
             </div>
         </div>
@@ -460,11 +542,11 @@
         }
 
         function getPressureLevel(systolic, diastolic) {
-            if (systolic < 90 || diastolic < 60) {
+            if (systolic < 100 || diastolic < 75) {
                 return { text: 'Низкое', class: 'pressure-low' };
-            } else if (systolic < 120 && diastolic < 80) {
+            } else if (systolic < 140 && diastolic < 90) {
                 return { text: 'Норма', class: 'pressure-normal' };
-            } else if (systolic < 130 && diastolic < 80) {
+            } else if (systolic < 150 && diastolic < 100) {
                 return { text: 'Повышенное', class: 'pressure-elevated' };
             } else {
                 return { text: 'Высокое', class: 'pressure-high' };
@@ -477,14 +559,14 @@
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const entryDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
             const diffDays = Math.floor((today - entryDate) / (1000 * 60 * 60 * 24));
-            
+
             const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            
+
             if (diffDays === 0) return `Сегодня, ${time}`;
             if (diffDays === 1) return `Вчера, ${time}`;
-            
-            return date.toLocaleDateString('ru-RU', { 
-                day: 'numeric', 
+
+            return date.toLocaleDateString('ru-RU', {
+                day: 'numeric',
                 month: 'short',
                 hour: '2-digit',
                 minute: '2-digit'
@@ -529,13 +611,13 @@
 
             renderHistory();
             updateStats();
-            
+
             alert('✅ Запись сохранена!');
         }
 
         function deleteEntry(id) {
             if (!confirm('Удалить эту запись?')) return;
-            
+
             const entries = getEntries().filter(e => e.id !== id);
             saveEntries(entries);
             renderHistory();
@@ -545,10 +627,86 @@
         function clearAll() {
             if (!confirm('Вы уверены, что хотите удалить ВСЕ записи?')) return;
             if (!confirm('Это действие нельзя отменить. Продолжить?')) return;
-            
+
             localStorage.removeItem(STORAGE_KEY);
             renderHistory();
             updateStats();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let imported = JSON.parse(e.target.result);
+
+                    if (!Array.isArray(imported)) {
+                        imported = [imported];
+                    }
+
+                    const entries = getEntries();
+                    let added = 0;
+
+                    imported.forEach(item => {
+                        if (item.systolic && item.diastolic && item.pulse) {
+                            const entry = {
+                                id: Date.now() + Math.random(),
+                                date: item.date || new Date().toISOString(),
+                                systolic: parseInt(item.systolic),
+                                diastolic: parseInt(item.diastolic),
+                                pulse: parseInt(item.pulse),
+                                note: item.note || '',
+                                timeOfDay: item.timeOfDay || null
+                            };
+                            entries.push(entry);
+                            added++;
+                        }
+                    });
+
+                    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    saveEntries(entries);
+                    renderHistory();
+                    updateStats();
+
+                    alert(`✅ Импортировано записей: ${added}`);
+                } catch (err) {
+                    alert('❌ Ошибка чтения файла. Проверьте формат JSON.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function exportData() {
+            const entries = getEntries();
+
+            if (entries.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const exportEntries = entries.map(e => ({
+                date: e.date,
+                systolic: e.systolic,
+                diastolic: e.diastolic,
+                pulse: e.pulse,
+                note: e.note || '',
+                timeOfDay: e.timeOfDay || ''
+            }));
+
+            const json = JSON.stringify(exportEntries, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bp-diary-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function renderHistory() {
@@ -598,13 +756,16 @@
             }).join('');
         }
 
+        let chartBP = null;
+        let chartPulse = null;
+
         function updateStats() {
             const entries = getEntries();
             document.getElementById('total-entries').textContent = entries.length;
 
             const weekAgo = new Date();
             weekAgo.setDate(weekAgo.getDate() - 7);
-            
+
             const recentEntries = entries.filter(e => new Date(e.date) >= weekAgo);
 
             if (recentEntries.length === 0) {
@@ -612,23 +773,140 @@
                 document.getElementById('avg-diastolic').textContent = '—';
                 document.getElementById('avg-pulse').textContent = '—';
                 document.getElementById('stats-info').textContent = 'Нет данных за последние 7 дней';
+            } else {
+                const avgSys = Math.round(recentEntries.reduce((a, b) => a + b.systolic, 0) / recentEntries.length);
+                const avgDia = Math.round(recentEntries.reduce((a, b) => a + b.diastolic, 0) / recentEntries.length);
+                const avgPulse = Math.round(recentEntries.reduce((a, b) => a + b.pulse, 0) / recentEntries.length);
+
+                document.getElementById('avg-systolic').textContent = avgSys;
+                document.getElementById('avg-diastolic').textContent = avgDia;
+                document.getElementById('avg-pulse').textContent = avgPulse;
+                document.getElementById('stats-info').textContent = `На основе ${recentEntries.length} измерений`;
+            }
+
+            renderCharts(entries);
+        }
+
+        function renderCharts(entries) {
+            const chartEntries = entries.slice(0, 20).reverse();
+
+            const canvasBP = document.getElementById('chart-bp');
+            const canvasPulse = document.getElementById('chart-pulse');
+            const emptyBP = document.getElementById('chart-bp-empty');
+            const emptyPulse = document.getElementById('chart-pulse-empty');
+
+            if (chartEntries.length < 2) {
+                canvasBP.style.display = 'none';
+                canvasPulse.style.display = 'none';
+                emptyBP.style.display = 'block';
+                emptyPulse.style.display = 'block';
                 return;
             }
 
-            const avgSys = Math.round(recentEntries.reduce((a, b) => a + b.systolic, 0) / recentEntries.length);
-            const avgDia = Math.round(recentEntries.reduce((a, b) => a + b.diastolic, 0) / recentEntries.length);
-            const avgPulse = Math.round(recentEntries.reduce((a, b) => a + b.pulse, 0) / recentEntries.length);
+            canvasBP.style.display = 'block';
+            canvasPulse.style.display = 'block';
+            emptyBP.style.display = 'none';
+            emptyPulse.style.display = 'none';
 
-            document.getElementById('avg-systolic').textContent = avgSys;
-            document.getElementById('avg-diastolic').textContent = avgDia;
-            document.getElementById('avg-pulse').textContent = avgPulse;
-            document.getElementById('stats-info').textContent = `На основе ${recentEntries.length} измерений`;
+            const labels = chartEntries.map(e => {
+                const d = new Date(e.date);
+                return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+            });
+
+            const systolicData = chartEntries.map(e => e.systolic);
+            const diastolicData = chartEntries.map(e => e.diastolic);
+            const pulseData = chartEntries.map(e => e.pulse);
+
+            if (chartBP) chartBP.destroy();
+            if (chartPulse) chartPulse.destroy();
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { boxWidth: 12, padding: 8, font: { size: 11 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { font: { size: 10 }, maxRotation: 45 }
+                    },
+                    y: {
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            };
+
+            chartBP = new Chart(canvasBP, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Систолическое',
+                            data: systolicData,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Диастолическое',
+                            data: diastolicData,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: { ...commonOptions.scales.y, min: 40, suggestedMax: 180 }
+                    }
+                }
+            });
+
+            chartPulse = new Chart(canvasPulse, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Пульс',
+                            data: pulseData,
+                            borderColor: '#9b59b6',
+                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: { ...commonOptions.scales.y, min: 40, suggestedMax: 120 }
+                    }
+                }
+            });
         }
 
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
+
             document.querySelector(`.tab:nth-child(${tabName === 'add' ? 1 : tabName === 'history' ? 2 : 3})`).classList.add('active');
             document.getElementById(`tab-${tabName}`).classList.add('active');
         }
